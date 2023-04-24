@@ -1,6 +1,11 @@
 import React from 'react';
 
-const TokenComponent = ({ selectedToken, currentItem, setSelectedToken }) => {
+const TokenComponent = ({
+  selectedToken,
+  currentItem,
+  setSelectedToken,
+  setIsTokenModalVisible,
+}) => {
   return (
     <section className="w-fit h-fit flex flex-col text-primaryText/50 mt-2 ml-4 mr-4">
       <div className="mt-2 justify-start items-start w-[432px] py-1 rounded-lg border border-secondaryFill hover:border-secondary">
@@ -10,6 +15,7 @@ const TokenComponent = ({ selectedToken, currentItem, setSelectedToken }) => {
     			 cursor-pointer hover:text-infoText hover:shadow-md"
             onClick={() => {
               setSelectedToken(currentItem);
+              setIsTokenModalVisible(false);
             }}
           >
             <img src={currentItem?.logoURI} alt="" className="w-8 h-8" />
