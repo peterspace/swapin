@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk,  createAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createAction } from '@reduxjs/toolkit';
 import swapService from './swapService';
 import { toast } from 'react-toastify';
 
@@ -134,7 +134,18 @@ export const swapReceiver = createAsyncThunk(
   }
 );
 
-export const resetState = createAction("Reset_all");
+export const connectedChainInfo = createAsyncThunk(
+  'swaps/chainInfo',
+  async (c, thunkAPI) => {
+    try {
+      return await swapService.connectedChainInfo(c);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
+
+export const resetState = createAction('Reset_all');
 
 const initialState = {
   swap: '',
@@ -359,6 +370,30 @@ export const swapSlice = createSlice({
         if (state.isSuccess === false) {
           toast.error('Something went wrong!');
         }
+      })
+
+      .addCase(connectedChainInfo.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(connectedChainInfo.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isError = false;
+        state.isSuccess = true;
+        state.swapConnectedNetwork = action.payload;
+        // if (state.isSuccess === true) {
+        //   toast.success(
+        //     `Connected to ${state.swapConnectedNetwork?.chainSymbol}`
+        //   );
+        // }
+      })
+      .addCase(connectedChainInfo.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isSuccess = false;
+        state.message = action.error;
+        // if (state.isSuccess === false) {
+        //   toast.error('Something went wrong!');
+        // }
       })
       .addCase(resetState, () => initialState);
   },
