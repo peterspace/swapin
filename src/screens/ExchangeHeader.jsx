@@ -24,7 +24,7 @@ const ExchangeHeader = () => {
           <span className="text-2xl text-white">Horiza</span>
         </Link>
       </div> */}
-      <div className="ml-4 flex flex-row gap-12">
+      <div className="ml-4 w-[32px] h-[32px]">
         <Link to="/">
           <svg
             version="1.0"
@@ -94,12 +94,6 @@ const ExchangeHeader = () => {
               />
             </g>
           </svg>
-        </Link>
-        <Link to="/">
-          <span className="text-xl text-white">Swap</span>
-        </Link>
-        <Link to="/buy">
-          <span className="text-xl text-white">Buy</span>
         </Link>
       </div>
 
