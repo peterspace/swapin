@@ -15,9 +15,7 @@ const TokenListButton = ({
           onClick={() => toggleModal(!modalVisible)}
         >
           <img src={selectedTokenIcon} alt="" className="w-4 h-4" />
-          <span className="text-xs text-primaryText hover:text-infoText">
-            {selectedTokenName}
-          </span>
+          <span className="text-xs text-primaryText">{selectedTokenName}</span>
         </button>
       </div>
     </>

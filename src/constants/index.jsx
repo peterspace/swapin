@@ -16,8 +16,8 @@ import {
   optimism,
   fantom,
   aurora,
-  polygonMumbai,
-  goerli,
+  // polygonMumbai,
+  // goerli,
 } from '../assets/networkOptions';
 
 export const navLinks = [

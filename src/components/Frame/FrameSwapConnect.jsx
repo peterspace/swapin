@@ -31,6 +31,7 @@ import {
   getPriceCompare,
   resetState,
   getChainUSDPrice,
+  connectedChainInfo,
 } from '../../redux/features/swap/swapSlice';
 
 const slippages = ['0.1', '0.5', '1', '1.5', '2', '3'];
@@ -72,7 +73,9 @@ const FrameSwapConnect = () => {
 
   const [swapRoutes, setSwapRoutes] = useState([]);
   const [activeProtocols, setActiveProtocols] = useState([]);
+  // const [protocols, setProtocols] = useState('');
   const [protocols, setProtocols] = useState('');
+  console.log({ protocols: protocols });
   const [validationOwner, setValidationOwner] = useState(false);
   const [validationReceiver, setValidationReceiver] = useState(false);
   //========={Tokens}===============================
@@ -163,7 +166,6 @@ const FrameSwapConnect = () => {
   // console.log({ swapFullData: swapFullData });
 
   const [isApproved, setIsApproved] = useState(false);
-  console.log({ isApproved: isApproved });
   const [networksUSDBalance, setNetworksUSDBalance] = useState(0.0);
   const [isNetworkBalance, setIsNetworkBalance] = useState(false);
 
@@ -173,37 +175,22 @@ const FrameSwapConnect = () => {
   const fee = import.meta.env.VITE_SWAP_FEE;
   const dexAddress = import.meta.env.VITE_DEX_ADDRESS;
 
-  const cryptoPriceApiKey = import.meta.env.VITE_CRYPTOCOMPARE_KEY;
-
   // =========={swap readyness}=========================================
 
   // const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  console.log({ isSuccess: isSuccess });
   const [successMessage, setSuccessMessage] = useState('');
-
-  console.log({ successMessage: successMessage });
-
-  const [isError, setIsError] = useState(false);
-  console.log({ isError: isError });
-  const [errorMessage, setErrorMessage] = useState('');
-  console.log({ errorMessage: errorMessage });
 
   const [info, setInfo] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  console.log({ isProcessing: isProcessing });
-  const [isProcessingInfo, setIsProcessingInfo] = useState('');
-  console.log({ isProcessingInfo: isProcessingInfo });
 
-  const [usdtRate, setUsdtRate] = useState('');
   const [usdtToken, setUsdtToken] = useState();
-  //console.log({ usdtToken: usdtToken });
-  const [isProtocolsReset, setIsProtocolsReset] = useState(false);
-
-  const [trasanctionGas, setTrasanctionGas] = useState();
 
   const [isTransactionMessage, setIsTransactionMessage] = useState('');
   const [transactionMessage, setTransactionMessage] = useState('');
+
+  const [isApproval, setIsApproval] = useState();
+
   //console.log({ trasanctionGas: trasanctionGas });
 
   // const gasGweiForm = parseFloat(formatUnits(estimatedGas, 'gwei'));
@@ -384,7 +371,6 @@ const FrameSwapConnect = () => {
       setFromToken(allTokens[0]);
       setToToken(allTokens[1]);
       setSlippage(slippages[0]);
-      // setIsProtocolsReset(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTokens]);
@@ -429,7 +415,6 @@ const FrameSwapConnect = () => {
     if (e.target.validity.valid) {
       setToValue(0);
       setFromValue(e.target.value);
-      setIsProtocolsReset(true); // reset protocol
 
       let parsed = parseUnits(e.target.value, fToken?.decimals.toString());
       // eslint-disable-next-line no-undef
@@ -482,7 +467,20 @@ const FrameSwapConnect = () => {
             setswapPriceInfo(response);
             setSwapRoutes(routes); // send the routes to the SwapRoute component through Layout
 
-            console.info('swapQouteData', response.data);
+            //================{SET AUTOMATIC PROTOCOL}===================
+            if (routes.length > 0) {
+              console.info({ aroute: routes[0] });
+              let newRoute = routes[0];
+
+              let autoRoute = newRoute?.map((l) => {
+                const activeRoute = l.name;
+                return activeRoute;
+              });
+              let pRoute = autoRoute.toString();
+              setProtocols(pRoute);
+            }
+
+            // console.info('swapQouteData', response.data);
             let rawValue = response.data.toTokenAmount;
             //    let value = rawValue.toFixed(4);
             // eslint-disable-next-line no-undef
@@ -571,7 +569,7 @@ const FrameSwapConnect = () => {
 
   async function resetProtocolsValidation() {
     setProtocols('');
-    setInfo('please select a route');
+    setInfo('No routes available');
     setIsCaution(true);
 
     setValidationOwner(false);
@@ -613,7 +611,7 @@ const FrameSwapConnect = () => {
 
       setValidationOwner(false);
     } else if (!protocols) {
-      setInfo('please select a route');
+      setInfo('No routes available');
       setIsCaution(true);
 
       setValidationOwner(false);
@@ -631,26 +629,28 @@ const FrameSwapConnect = () => {
     }, 5000);
 
     setIsProcessing(true);
+    try {
+      const response = await axios.get(
+        `https://api.1inch.exchange/v5.0/${chainId}/approve/transaction?tokenAddress=${fToken?.address}&amount=${validatedValue}`
+      );
+      if (response.data) {
+        let tx = response.data;
 
-    const response = await axios.get(
-      `https://api.1inch.exchange/v5.0/${chainId}/approve/transaction?tokenAddress=${fToken?.address}&amount=${validatedValue}`
-    );
-    if (response.data) {
-      let tx = response.data;
+        let wallet = signer.data;
+        const approval = wallet.sendTransaction(tx);
+        console.log({ approvalReward: approval });
 
-      let wallet = signer.data;
-      const approval = wallet.sendTransaction(tx);
-      console.log({ approvalReward: approval });
-
-      await approval.wait();
-      console.log({ approvalData: approval });
-      if (approval) {
+        await approval.wait();
         setIsProcessing(false);
         return approval;
-      } else {
-        console.log({
-          message: 'Network error',
-        });
+        // console.log({ approvalData: approval });
+        // if (approval) {
+        //   setIsProcessing(false);
+        //   return approval;
+        // } else {
+        //   console.log({
+        //     message: 'Network error',
+        //   });
         // code: -32000
         // message: "gas required exceeds allowance (15000000)"
 
@@ -659,118 +659,73 @@ const FrameSwapConnect = () => {
 
         // code:  4001
         // message :  "MetaMask Tx Signature: User denied transaction signature."
-
-        setIsProcessing(false);
-        setIsError(true);
-        setTransactionMessage('Network error, please increase your allowance');
-        setIsTransactionMessage(true);
-        setTimeout(() => {
-          setIsTransactionMessage(false);
-        }, 5000);
       }
+    } catch (error) {
+      console.log(error);
+      setTransactionMessage(error?.message);
+      setTransactionMessage(error?.data?.message);
+      setIsTransactionMessage(true);
+      console.log({ ApproveError: error });
     }
   }
+
+  // isApproval
+
+  useEffect(() => {
+    if (
+      fToken?.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ||
+      fToken?.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+    ) {
+      setIsApproval(false);
+    } else {
+      setIsApproval(true);
+    }
+  }, [fToken?.address]);
 
   //ethers js
   //====================================================
 
-  async function swapOwn() {
+  async function swapOwner() {
     if (validationOwner === true) {
       setIsProcessing(true);
       try {
-        if (
-          fToken?.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ||
-          fToken?.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-        ) {
-          setTransactionMessage(
-            'Please hold while your transaction is in progress'
-          );
-          setIsTransactionMessage(true);
-          setTimeout(() => {
-            setIsTransactionMessage(false);
-          }, 5000);
-          const response = await axios.get(
-            `https://api.1inch.io/v5.0/${chainId}/swap?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${validatedValue}&fromAddress=${walletAddress}&slippage=${slippage}&protocols=${protocols}&referrerAddress=${dexAddress}&fee=${fee}&disableEstimate=true&allowPartialFill=false&gasLimit=3000000`
-          );
+        setTransactionMessage(
+          'Please hold while your transaction is in progress'
+        );
+        setIsTransactionMessage(true);
+        setTimeout(() => {
+          setIsTransactionMessage(false);
+        }, 5000);
+        const response = await axios.get(
+          `https://api.1inch.io/v5.0/${chainId}/swap?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${validatedValue}&fromAddress=${walletAddress}&slippage=${slippage}&protocols=${protocols}&referrerAddress=${dexAddress}&fee=${fee}&disableEstimate=true&allowPartialFill=false&gasLimit=3000000`
+        );
 
-          if (response?.data) {
-            let tx = {
-              data: response.data.tx.data,
-              from: response.data.tx.from,
-              gasLimit: estimatedGas,
-              gasPrice: response.data.tx.gasPrice,
-              to: response.data.tx.to,
-              value: response.data.tx.value,
-            };
+        if (response?.data) {
+          let tx = {
+            data: response.data.tx.data,
+            from: response.data.tx.from,
+            gasLimit: estimatedGas,
+            gasPrice: response.data.tx.gasPrice,
+            to: response.data.tx.to,
+            value: response.data.tx.value,
+          };
 
-            let wallet = signer.data;
-            const swapReward = wallet.sendTransaction(tx);
+          let wallet = signer.data;
+          const swapReward = wallet.sendTransaction(tx);
 
-            console.log({ swapReward: swapReward });
+          console.log({ swapReward: swapReward });
 
-            if (swapReward.hash) {
-              setIsProcessing(false);
-              setIsSuccess(true);
-              setTransactionMessage('Swap successful');
-              setIsTransactionMessage(true);
-              setTimeout(() => {
-                setIsTransactionMessage(false);
-              }, 5000);
-            }
-          }
-        } else {
-          let approval = await approve();
-
-          if (approval.hash) {
-            setTransactionMessage('Approval granted');
+          if (swapReward.hash) {
+            setIsProcessing(false);
+            setIsSuccess(true);
+            setTransactionMessage('Swap successful');
             setIsTransactionMessage(true);
             setTimeout(() => {
               setIsTransactionMessage(false);
             }, 5000);
-
-            setTransactionMessage(
-              'Please hold while your transaction is in progress'
-            );
-            setIsTransactionMessage(true);
-            setTimeout(() => {
-              setIsTransactionMessage(false);
-            }, 2000);
-
-            const response = await axios.get(
-              `https://api.1inch.io/v5.0/${chainId}/swap?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${validatedValue}&fromAddress=${walletAddress}&slippage=${slippage}&protocols=${protocols}&referrerAddress=${dexAddress}&fee=${fee}&disableEstimate=true&allowPartialFill=false&gasLimit=3000000`
-            );
-            if (response?.data) {
-              let tx = {
-                data: response.data.tx.data,
-                from: response.data.tx.from,
-                gasLimit: estimatedGas,
-                gasPrice: response.data.tx.gasPrice,
-                to: response.data.tx.to,
-                value: response.data.tx.value,
-              };
-
-              let wallet = signer.data;
-              const swapReward = wallet.sendTransaction(tx);
-              console.log({ swapReward: swapReward });
-              if (swapReward.status) {
-                setTransactionMessage('Swap successful');
-                setIsTransactionMessage(true);
-                setTimeout(() => {
-                  setIsTransactionMessage(false);
-                }, 2000);
-                setIsProcessing(false);
-              }
-            } else {
-              setTransactionMessage('Swap unsuccessful');
-              setIsTransactionMessage(true);
-              setTimeout(() => {
-                setIsTransactionMessage(false);
-              }, 2000);
-              setIsProcessing(false);
-            }
           }
-          setIsProcessing(false);
         }
+        setIsProcessing(false);
       } catch (error) {
         console.log(error);
         setTransactionMessage('Swap unsuccessful');
@@ -813,7 +768,7 @@ const FrameSwapConnect = () => {
 
       setValidationReceiver(false);
     } else if (!protocols) {
-      setInfo('please select a route');
+      setInfo('No routes available');
       setIsCaution(true);
 
       setValidationReceiver(false);
@@ -829,103 +784,40 @@ const FrameSwapConnect = () => {
   }
 
   async function swapReceiver() {
-    if (validationOwner === true) {
+    if (validationReceiver === true) {
       setIsProcessing(true);
       try {
-        if (
-          fToken?.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ||
-          fToken?.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-        ) {
-          setTransactionMessage(
-            'Please hold while your transaction is in progress'
-          );
-          setIsTransactionMessage(true);
-          setTimeout(() => {
-            setIsTransactionMessage(false);
-          }, 5000);
-          const response = await axios.get(
-            `https://api.1inch.io/v5.0/${chainId}/swap?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${validatedValue}&fromTokenAddress=${walletAddress}&slippage=${slippage}&protocols=${protocols}&destReceiver=${receiver}&referrerAddress=${dexAddress}&fee=${fee}&disableEstimate=true&allowPartialFill=false&gasLimit=3000000`
-          );
+        setTransactionMessage(
+          'Please hold while your transaction is in progress'
+        );
+        setIsTransactionMessage(true);
+        setTimeout(() => {
+          setIsTransactionMessage(false);
+        }, 5000);
+        const response = await axios.get(
+          `https://api.1inch.io/v5.0/${chainId}/swap?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${validatedValue}&fromTokenAddress=${walletAddress}&slippage=${slippage}&protocols=${protocols}&destReceiver=${receiver}&referrerAddress=${dexAddress}&fee=${fee}&disableEstimate=true&allowPartialFill=false&gasLimit=3000000`
+        );
 
-          //========={check}========================
-          if (response?.data) {
-            // setSwapFullData(response.data.tx);
+        if (response?.data) {
+          let tx = {
+            data: response.data.tx.data,
+            from: response.data.tx.from,
+            gasLimit: estimatedGas,
+            gasPrice: response.data.tx.gasPrice,
+            to: response.data.tx.to,
+            value: response.data.tx.value,
+          };
 
-            let tx = {
-              data: response.data.tx.data,
-              from: response.data.tx.from,
-              gasLimit: estimatedGas,
-              gasPrice: response.data.tx.gasPrice,
-              to: response.data.tx.to,
-              value: response.data.tx.value,
-            };
+          let wallet = signer.data;
+          const swapReward = wallet.sendTransaction(tx);
 
-            let wallet = signer.data;
-            const swapReward = wallet.sendTransaction(tx);
+          console.log({ swapReward: swapReward });
 
-            console.log({ swapReward: swapReward });
-
-            if (swapReward.hash) {
-              setIsProcessingInfo('');
-              setIsProcessing(false);
-              setSuccessMessage('Swap successful');
-              setIsSuccess(true);
-            }
+          if (swapReward.hash) {
+            setIsProcessing(false);
+            setSuccessMessage('Swap successful');
+            setIsSuccess(true);
           }
-        } else {
-          let approval = await approve();
-
-          if (approval.hash) {
-            setTransactionMessage('Approval granted');
-            setIsTransactionMessage(true);
-            setTimeout(() => {
-              setIsTransactionMessage(false);
-            }, 5000);
-
-            setTransactionMessage(
-              'Please hold while your transaction is in progress'
-            );
-            setIsTransactionMessage(true);
-            setTimeout(() => {
-              setIsTransactionMessage(false);
-            }, 2000);
-
-            const response = await axios.get(
-              `https://api.1inch.io/v5.0/${chainId}/swap?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${validatedValue}&fromTokenAddress=${walletAddress}&slippage=${slippage}&protocols=${protocols}&destReceiver=${receiver}&referrerAddress=${dexAddress}&fee=${fee}&disableEstimate=true&allowPartialFill=false&gasLimit=3000000`
-            );
-            //========={check}========================
-            if (response?.data) {
-              let tx = {
-                data: response.data.tx.data,
-                from: response.data.tx.from,
-                gasLimit: estimatedGas,
-                gasPrice: response.data.tx.gasPrice,
-                to: response.data.tx.to,
-                value: response.data.tx.value,
-              };
-
-              setSwapFullData(tx);
-              let wallet = signer.data;
-              const swapReward = wallet.sendTransaction(tx);
-              console.log({ swapReward: swapReward });
-              if (swapReward.status) {
-                setTransactionMessage('Swap successful');
-                setIsTransactionMessage(true);
-                setTimeout(() => {
-                  setIsTransactionMessage(false);
-                }, 5000);
-                setIsProcessing(false);
-              }
-            } else {
-              setTransactionMessage('Swap unsuccessful');
-              setIsTransactionMessage(true);
-              setTimeout(() => {
-                setIsTransactionMessage(false);
-              }, 5000);
-              setIsProcessing(false);
-            }
-          }
-          setIsProcessing(false);
         }
       } catch (error) {
         console.log(error);
@@ -943,8 +835,6 @@ const FrameSwapConnect = () => {
     let tmpToken = fToken;
     setFromToken(tToken);
     setToToken(tmpToken);
-
-    setIsProtocolsReset(true);
   }
 
   //================={updateProtocols}===============
@@ -1087,49 +977,13 @@ const FrameSwapConnect = () => {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chainId, balance, dispatch]);
-  useEffect(() => {
-    setTimeout(() => {
-      getNetworkUSDPrice();
-      // console.log({ networksUSDBalance: networksUSDBalance });
-    }, 60000); // production 2000
-  });
 
-  const getNetworkUSDPrice = async () => {
-    let price = null; // Price of any crypto selected currency in USD
-    let symbol = chain?.balanceSymbol; // using the balanceSymbol since some networks are layer 2 evm
+  // function copyToClipboard() {
+  //   if (isConnected) {
+  //     navigator.clipboard.writeText(address);
 
-    await axios
-      .get(
-        `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${symbol}&tsyms=USD&api_key=${cryptoPriceApiKey}`
-        // ''
-      )
-      .then((res) => {
-        //To get Cryptocompare.com rates for any crptocurrency to USD
-
-        if (res.data?.Type === 1) {
-          return;
-        } else {
-          let data = res?.data?.DISPLAY[symbol]?.USD;
-          price = data?.PRICE;
-          let pricex = price.split(' ')[1];
-
-          let pricey = parseFloat(pricex.replace(/,/g, ''));
-          let rateUSD = pricey;
-
-          let totalUSD = Number(balance) * rateUSD;
-          let totalUsdFormmated = totalUSD.toFixed(4);
-          setNetworksUSDBalance(totalUsdFormmated);
-        }
-      });
-  };
-
-  function copyToClipboard() {
-    if (isConnected) {
-      navigator.clipboard.writeText(address);
-      // toast.success('Wallet Address copied');
-      // console.info('Wallet Address copied!');
-    }
-  }
+  //   }
+  // }
 
   return (
     <div className="flex flex-col justify-center items-center gap-2 mb-8">
@@ -1208,7 +1062,10 @@ const FrameSwapConnect = () => {
               </div>
 
               <div className="flex flex-row justify-between items-center">
-                <div className="flex flex-row justify-start w-[25%] rounded-lg bg-secondaryFill items-start mb-8 mt-4 ml-4 mr-4">
+                <div
+                  className="flex flex-row justify-start w-[25%] rounded-lg bg-secondaryFill items-start mb-8 mt-4 ml-4 mr-4"
+                  onClick={() => setIsFromCurrencyModalVisible(true)}
+                >
                   <div className="px-3 py-2 w-full flex flex-row gap-2 cursor-pointer hover:text-infoText hover:shadow-md rounded-lg hover:bg-secondaryFill">
                     <TokenListButton
                       selectedTokenName={fToken?.symbol}
@@ -1313,7 +1170,10 @@ const FrameSwapConnect = () => {
                 <span className="text-xl text-primaryText">Buy</span>
               </div>
               <div className="flex flex-row justify-between items-center">
-                <div className="flex flex-row justify-start w-[25%] rounded-lg bg-secondaryFill items-start mb-8 mt-4 ml-4 mr-4">
+                <div
+                  className="flex flex-row justify-start w-[25%] rounded-lg bg-secondaryFill items-start mb-8 mt-4 ml-4 mr-4"
+                  onClick={() => setIsToCurrencyModalVisible(true)}
+                >
                   <div
                     className="px-3 py-2 w-full flex flex-row gap-2 cursor-pointer hover:text-infoText hover:shadow-md rounded-lg hover:bg-secondaryFill "
                     // onClick={() => {
@@ -1495,165 +1355,347 @@ const FrameSwapConnect = () => {
 
         {/* Profile */}
         <Modal visible={isConfirmation}>
-          <></>
-          <section className="flex flex-col justify-center items-center gap-2 mb-8">
-            <div className="border border-secondaryFillLight rounded-xl bg-primaryFill">
-              {/* View Estimated Cost */}
-              <section className="w-fit h-fit flex flex-col gap-2 text-infoText/50">
-                <div className="flex flex-row gap-2 justify-center items-center bg-infoFill rounded-xl w-[432px] py-4 outline">
-                  <div className="p-2 text-sm text-secondaryText flex flex-col">
-                    <section className="flex flex-row  gap-[30px] mb-5 mt-4 ml-4 mr-4">
-                      {/* Back Button*/}
-                      <span
-                        className="px-1 py-1 bg-secondaryFill rounded-lg cursor-pointer border border-transparent hover:scale-110 ease-in duration-200"
-                        onClick={() => {
-                          setIsConfirmation(false);
-                          setValidationOwner(false);
-                          setValidationReceiver(false);
-                          // resetProtocolsValidation();
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth="1.5"
-                          stroke="#FFFFFF"
-                          className="w-5 h-5 stroke-secondaryText active:fill-infoText hover:stroke-infoText"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.75 19.5L8.25 12l7.5-7.5"
-                          />
-                        </svg>
-                      </span>
-                      <div className="text-primaryText text-lg w-[312px] h-[28px] flex justify-center items-center">
-                        Confirmation
-                      </div>
-                    </section>
-                    <div className="border-b border-infoText/20 m-1"></div>
-                    <section className="overflow-y-auto max-h-[320px] mb-5 ml-4 mt-4 mr-4 flex flex-row justify-between items-center">
-                      <div className="flex flex-row w-[312px] gap-2">
-                        <span className="py-1 text-sm justify-start items-start text-primaryText">
-                          Network
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        <ActiveChainComponent currentItem={chain} />
-                      </div>
-                    </section>
-                    <div className="border-b border-infoText/20 m-1"></div>
-                    <section className="flex flex-col gap-1 text-primaryText/50 mb-4 mt-4 ml-4 mr-4">
-                      <div className="flex justify-between">
-                        <span className="py-1 text-sm justify-start items-start text-primaryText">
-                          Send:
-                        </span>
-                        <span
-                          className="px-2.5 py-1 cursor-pointer 
+          <>
+            {isApproval ? (
+              <section className="flex flex-col justify-center items-center gap-2 mb-8">
+                <div className="border border-secondaryFillLight rounded-xl bg-primaryFill">
+                  {/* View Estimated Cost */}
+                  <section className="w-fit h-fit flex flex-col gap-2 text-infoText/50">
+                    <div className="flex flex-row gap-2 justify-center items-center bg-infoFill rounded-xl w-[432px] py-4 outline">
+                      <div className="p-2 text-sm text-secondaryText flex flex-col">
+                        <section className="flex flex-row  gap-[30px] mb-5 mt-4 ml-4 mr-4">
+                          {/* Back Button*/}
+                          <span
+                            className="px-1 py-1 bg-secondaryFill rounded-lg cursor-pointer border border-transparent hover:scale-110 ease-in duration-200"
+                            onClick={() => {
+                              setIsConfirmation(false);
+                              setValidationOwner(false);
+                              setValidationReceiver(false);
+                              // resetProtocolsValidation();
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth="1.5"
+                              stroke="#FFFFFF"
+                              className="w-5 h-5 stroke-secondaryText active:fill-infoText hover:stroke-infoText"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15.75 19.5L8.25 12l7.5-7.5"
+                              />
+                            </svg>
+                          </span>
+                          <div className="text-primaryText text-lg w-[312px] h-[28px] flex justify-center items-center">
+                            Confirmation
+                          </div>
+                        </section>
+                        <div className="border-b border-infoText/20 m-1"></div>
+                        <section className="overflow-y-auto max-h-[320px] mb-5 ml-4 mt-4 mr-4 flex flex-row justify-between items-center">
+                          <div className="flex flex-row w-[312px] gap-2">
+                            <span className="py-1 text-sm justify-start items-start text-primaryText">
+                              Network
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <ActiveChainComponent currentItem={chain} />
+                          </div>
+                        </section>
+                        <div className="border-b border-infoText/20 m-1"></div>
+                        <section className="flex flex-col gap-1 text-primaryText/50 mb-4 mt-4 ml-4 mr-4">
+                          <div className="flex justify-between">
+                            <span className="py-1 text-sm justify-start items-start text-primaryText">
+                              Send:
+                            </span>
+                            <span
+                              className="px-2.5 py-1 cursor-pointer 
                     text-secondaryText"
-                        >
-                          {fValue ? fValue : 0} {fToken?.symbol}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="py-1 text-sm justify-start items-start text-primaryText">
-                          Receive:
-                        </span>
-                        <span
-                          className="px-2.5 py-1 cursor-pointer 
+                            >
+                              {fValue ? fValue : 0} {fToken?.symbol}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="py-1 text-sm justify-start items-start text-primaryText">
+                              Receive:
+                            </span>
+                            <span
+                              className="px-2.5 py-1 cursor-pointer 
                     text-secondaryText"
-                        >
-                          {tValue ? tValueFormatted : 0} {tToken?.symbol}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <div className="">
-                          <span className="py-1 text-sm justify-start items-start text-primaryText">
-                            Gas
-                          </span>
-                          <span className="ml-1 py-1 text-sm justify-start items-start text-secondaryText">
-                            (estimate)
-                          </span>
-                          <span className="ml-1 py-1 text-sm justify-start items-start text-primaryText">
-                            :
-                          </span>
-                        </div>
+                            >
+                              {tValue ? tValueFormatted : 0} {tToken?.symbol}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <div className="">
+                              <span className="py-1 text-sm justify-start items-start text-primaryText">
+                                Gas
+                              </span>
+                              <span className="ml-1 py-1 text-sm justify-start items-start text-secondaryText">
+                                (estimate)
+                              </span>
+                              <span className="ml-1 py-1 text-sm justify-start items-start text-primaryText">
+                                :
+                              </span>
+                            </div>
 
-                        <span
-                          className="px-2.5 py-1 cursor-pointer 
+                            <span
+                              className="px-2.5 py-1 cursor-pointer 
                     text-secondaryText"
-                        >
-                          {estimatedGas ? estimatedGas / 10 ** 9 : null} Gwei
-                        </span>
-                      </div>
-                    </section>
+                            >
+                              {estimatedGas ? estimatedGas / 10 ** 9 : null}{' '}
+                              Gwei
+                            </span>
+                          </div>
+                        </section>
 
-                    <div className="border-b border-infoText/20 m-1"></div>
-                    <section
-                      className="overflow-y-auto py-4 max-h-[320px]  flex flex-row justify-between text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill hover:bg-infoFill
-                  outline hover:outline-attentionText shadow-lg  w-[350px] mb-8 mt-4 ml-8 mr-4 hover:scale-105 ease-in duration-200 shadow-infoText/20"
-                    >
-                      {receiverWallet && receiverWallet === 'my wallet' ? (
-                        <button
-                          className="py-1 px-4 h-full w-full outline-none text-primaryText"
-                          disabled={
-                            //walletAddress.length <= 5 || fValue === 0 ? true : false
-                            fValue === 0 ? true : false
-                          }
-                          onClick={() => {
-                            if (toAnotherWallet) {
-                              swapReceiver();
-                              // setIsConfirmation(false)
-                            } else {
-                              swapOwn();
-                              // setIsConfirmation(false)
+                        <div className="border-b border-infoText/20 m-1"></div>
+                        <section
+                          className="overflow-y-auto py-4 max-h-[320px]  flex flex-row justify-between text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill hover:bg-infoFill
+                  outline hover:outline-attentionText shadow-lg  w-[350px] mb-4 mt-8 ml-8 mr-4 hover:scale-105 ease-in duration-200 shadow-infoText/20"
+                        >
+                          <button
+                            className="py-1 px-4 h-full w-full outline-none text-primaryText"
+                            disabled={
+                              //walletAddress.length <= 5 || fValue === 0 ? true : false
+                              fValue === 0 ? true : false
                             }
-                          }}
+                            onClick={() => {
+                              approve();
+                              // setIsConfirmation(false)
+                            }}
+                          >
+                            Approve
+                          </button>
+                        </section>
+                        <section
+                          className="overflow-y-auto py-4 max-h-[320px]  flex flex-row justify-between text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill hover:bg-infoFill
+                  outline hover:outline-attentionText shadow-lg  w-[350px] mb-8 mt-4 ml-8 mr-4 hover:scale-105 ease-in duration-200 shadow-infoText/20"
                         >
-                          Confirm
-                        </button>
-                      ) : (
-                        <button
-                          className="py-1 px-4 h-full w-full outline-none text-primaryText"
-                          disabled={
-                            //walletAddress.length <= 5 || fValue === 0 ? true : false
-                            fValue === 0 ? true : false
-                          }
-                          onClick={() => {
-                            swapReceiver();
-                            // setIsConfirmation(false)
-                          }}
-                        >
-                          Confirm
-                        </button>
-                      )}
-                    </section>
-                    <section
-                      className="py-2 mb-2 ml-4 mr-4 flex flex-row text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill
+                          {receiverWallet && receiverWallet === 'my wallet' ? (
+                            <button
+                              className="py-1 px-4 h-full w-full outline-none text-primaryText"
+                              disabled={
+                                //walletAddress.length <= 5 || fValue === 0 ? true : false
+                                fValue === 0 ? true : false
+                              }
+                              onClick={() => {
+                                if (toAnotherWallet) {
+                                  swapReceiver();
+                                  // setIsConfirmation(false)
+                                } else {
+                                  swapOwner();
+                                  // setIsConfirmation(false)
+                                }
+                              }}
+                            >
+                              Swap Now!
+                            </button>
+                          ) : (
+                            <button
+                              className="py-1 px-4 h-full w-full outline-none text-primaryText"
+                              disabled={
+                                //walletAddress.length <= 5 || fValue === 0 ? true : false
+                                fValue === 0 ? true : false
+                              }
+                              onClick={() => {
+                                swapReceiver();
+                                // setIsConfirmation(false)
+                              }}
+                            >
+                              Swap Now!
+                            </button>
+                          )}
+                        </section>
+                        <section
+                          className="py-2 mb-2 ml-4 mr-4 flex flex-row text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill
                   shadow-lg"
-                    >
-                      <div className="text-xs flex flex-row justify-center items-center ml-4">
-                        Please note that Gas prices are likely to change on the
-                        network
-                      </div>
-                    </section>
+                        >
+                          <div className="text-xs flex flex-row justify-center items-center ml-4">
+                            Please note that Gas prices are likely to change on
+                            the network
+                          </div>
+                        </section>
 
-                    {isTransactionMessage ? (
-                      <section
-                        className="py-2 mb-2 ml-4 mr-4 flex flex-row text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill
+                        {isTransactionMessage ? (
+                          <section
+                            className="py-2 mb-2 ml-4 mr-4 flex flex-row text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill
                   shadow-lg"
-                      >
-                        <div className="text-xs flex flex-row justify-center items-center ml-4">
-                          {transactionMessage}
-                        </div>
-                      </section>
-                    ) : null}
-                  </div>
+                          >
+                            <div className="text-xs flex flex-row justify-center items-center ml-4">
+                              {transactionMessage}
+                            </div>
+                          </section>
+                        ) : null}
+                      </div>
+                    </div>
+                  </section>
                 </div>
               </section>
-            </div>
-          </section>
+            ) : (
+              <section className="flex flex-col justify-center items-center gap-2 mb-8">
+                <div className="border border-secondaryFillLight rounded-xl bg-primaryFill">
+                  {/* View Estimated Cost */}
+                  <section className="w-fit h-fit flex flex-col gap-2 text-infoText/50">
+                    <div className="flex flex-row gap-2 justify-center items-center bg-infoFill rounded-xl w-[432px] py-4 outline">
+                      <div className="p-2 text-sm text-secondaryText flex flex-col">
+                        <section className="flex flex-row  gap-[30px] mb-5 mt-4 ml-4 mr-4">
+                          {/* Back Button*/}
+                          <span
+                            className="px-1 py-1 bg-secondaryFill rounded-lg cursor-pointer border border-transparent hover:scale-110 ease-in duration-200"
+                            onClick={() => {
+                              setIsConfirmation(false);
+                              setValidationOwner(false);
+                              setValidationReceiver(false);
+                              // resetProtocolsValidation();
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth="1.5"
+                              stroke="#FFFFFF"
+                              className="w-5 h-5 stroke-secondaryText active:fill-infoText hover:stroke-infoText"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15.75 19.5L8.25 12l7.5-7.5"
+                              />
+                            </svg>
+                          </span>
+                          <div className="text-primaryText text-lg w-[312px] h-[28px] flex justify-center items-center">
+                            Confirmation
+                          </div>
+                        </section>
+                        <div className="border-b border-infoText/20 m-1"></div>
+                        <section className="overflow-y-auto max-h-[320px] mb-5 ml-4 mt-4 mr-4 flex flex-row justify-between items-center">
+                          <div className="flex flex-row w-[312px] gap-2">
+                            <span className="py-1 text-sm justify-start items-start text-primaryText">
+                              Network
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <ActiveChainComponent currentItem={chain} />
+                          </div>
+                        </section>
+                        <div className="border-b border-infoText/20 m-1"></div>
+                        <section className="flex flex-col gap-1 text-primaryText/50 mb-4 mt-4 ml-4 mr-4">
+                          <div className="flex justify-between">
+                            <span className="py-1 text-sm justify-start items-start text-primaryText">
+                              Send:
+                            </span>
+                            <span
+                              className="px-2.5 py-1 cursor-pointer 
+                    text-secondaryText"
+                            >
+                              {fValue ? fValue : 0} {fToken?.symbol}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="py-1 text-sm justify-start items-start text-primaryText">
+                              Receive:
+                            </span>
+                            <span
+                              className="px-2.5 py-1 cursor-pointer 
+                    text-secondaryText"
+                            >
+                              {tValue ? tValueFormatted : 0} {tToken?.symbol}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <div className="">
+                              <span className="py-1 text-sm justify-start items-start text-primaryText">
+                                Gas
+                              </span>
+                              <span className="ml-1 py-1 text-sm justify-start items-start text-secondaryText">
+                                (estimate)
+                              </span>
+                              <span className="ml-1 py-1 text-sm justify-start items-start text-primaryText">
+                                :
+                              </span>
+                            </div>
+
+                            <span
+                              className="px-2.5 py-1 cursor-pointer 
+                    text-secondaryText"
+                            >
+                              {estimatedGas ? estimatedGas / 10 ** 9 : null}{' '}
+                              Gwei
+                            </span>
+                          </div>
+                        </section>
+
+                        <div className="border-b border-infoText/20 m-1"></div>
+                        <section
+                          className="overflow-y-auto py-4 max-h-[320px]  flex flex-row justify-between text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill hover:bg-infoFill
+                  outline hover:outline-attentionText shadow-lg  w-[350px] mb-8 mt-4 ml-8 mr-4 hover:scale-105 ease-in duration-200 shadow-infoText/20"
+                        >
+                          {receiverWallet && receiverWallet === 'my wallet' ? (
+                            <button
+                              className="py-1 px-4 h-full w-full outline-none text-primaryText"
+                              disabled={
+                                //walletAddress.length <= 5 || fValue === 0 ? true : false
+                                fValue === 0 ? true : false
+                              }
+                              onClick={() => {
+                                if (toAnotherWallet) {
+                                  swapReceiver();
+                                  // setIsConfirmation(false)
+                                } else {
+                                  swapOwner();
+                                  // setIsConfirmation(false)
+                                }
+                              }}
+                            >
+                              Swap Now!
+                            </button>
+                          ) : (
+                            <button
+                              className="py-1 px-4 h-full w-full outline-none text-primaryText"
+                              disabled={
+                                //walletAddress.length <= 5 || fValue === 0 ? true : false
+                                fValue === 0 ? true : false
+                              }
+                              onClick={() => {
+                                swapReceiver();
+                                // setIsConfirmation(false)
+                              }}
+                            >
+                              Swap Now!
+                            </button>
+                          )}
+                        </section>
+                        <section
+                          className="py-2 mb-2 ml-4 mr-4 flex flex-row text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill
+                  shadow-lg"
+                        >
+                          <div className="text-xs flex flex-row justify-center items-center ml-4">
+                            Please note that Gas prices are likely to change on
+                            the network
+                          </div>
+                        </section>
+
+                        {isTransactionMessage ? (
+                          <section
+                            className="py-2 mb-2 ml-4 mr-4 flex flex-row text-infoText items-center rounded-lg cursor-pointer border border-secondaryFill bg-infoFill
+                  shadow-lg"
+                          >
+                            <div className="text-xs flex flex-row justify-center items-center ml-4">
+                              {transactionMessage}
+                            </div>
+                          </section>
+                        ) : null}
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </section>
+            )}
+          </>
         </Modal>
 
         {!isConnected ? (
@@ -1805,6 +1847,7 @@ const FrameSwapConnect = () => {
                       key={idx}
                       currentItem={token}
                       setSelectedToken={setFromToken}
+                      setIsTokenModalVisible={setIsFromCurrencyModalVisible}
                     />
                   ))}
                 </div>
@@ -1814,6 +1857,7 @@ const FrameSwapConnect = () => {
                       key={idx}
                       currentItem={token}
                       setSelectedToken={setFromToken}
+                      setIsTokenModalVisible={setIsFromCurrencyModalVisible}
                     />
                   ))}
                 </div>
@@ -1952,6 +1996,7 @@ const FrameSwapConnect = () => {
                       key={idx}
                       currentItem={token}
                       setSelectedToken={setToToken}
+                      setIsTokenModalVisible={setIsToCurrencyModalVisible}
                     />
                   ))}
                 </div>
@@ -1961,6 +2006,7 @@ const FrameSwapConnect = () => {
                       key={idx}
                       currentItem={token}
                       setSelectedToken={setToToken}
+                      setIsTokenModalVisible={setIsToCurrencyModalVisible}
                     />
                   ))}
                 </div>
@@ -2219,7 +2265,8 @@ const FrameSwapConnect = () => {
                               setChain(c);
                               setIsChainChange(true);
                               setIsNetworkBalance(true);
-                              // dispatch(resetState());
+                              dispatch(connectedChainInfo(c));
+                              setIsChainModalVisible(false);
                               // updateStates();
                             }}
                           >
@@ -2330,6 +2377,7 @@ const FrameSwapConnect = () => {
                                 key={idx}
                                 onClick={() => {
                                   setActiveProtocols(
+                                    // routesArray ? routesArray : swapRoutes[0]
                                     routesArray ? routesArray : swapRoutes[0]
                                   );
                                 }}
@@ -2437,7 +2485,7 @@ const FrameSwapConnect = () => {
                 <button
                   className="flex gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer 
            shadow-lg ml-2"
-                  onClick={address === undefined ? null : copyToClipboard()}
+                  //onClick={address === undefined ? null : copyToClipboard()}
                 >
                   <span className="py-1.5 rounded-full bg-secondaryFill px-1.5 hover:scale-110 ease-in duration-200 shadow-gray-400 cursor-pointer">
                     <svg

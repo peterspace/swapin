@@ -67,14 +67,12 @@ const getPriceCompare = async (userData) => {
     `https://api.1inch.exchange/v5.0/${chainId}/quote?fromTokenAddress=${fToken?.address}&toTokenAddress=${tToken?.address}&amount=${amount}&fee=${fee}&gasLimit=3000000`
   );
   if (response.data) {
-    console.info('ComparePriceData', response.data);
     let rawValue = response.data.toTokenAmount;
-    console.info('compareRawValue', rawValue);
     let value = rawValue / 10 ** tToken.decimals;
     let valueFormmated = value.toFixed(4);
     let exchangeRate = valueFormmated;
     let newData = { exchangeRate };
-    console.info('ExchangeRate', newData);
+
     return newData;
   }
 };
@@ -94,14 +92,9 @@ const getFromUSDPrice = async (userData) => {
       `https://api.1inch.exchange/v5.0/${chainId}/quote?fromTokenAddress=${fToken?.address}&toTokenAddress=${usdtToken?.address}&amount=${amount}&fee=${fee}&gasLimit=3000000`
     );
     if (response.data) {
-      console.info('FromPriceData', response.data);
       let rawValue = response.data.toTokenAmount;
-      console.info('fromRawValue', rawValue);
       let value = rawValue / 10 ** usdtToken?.decimals;
-      console.info('fromPriceValue', value);
       let valueFormmated = value.toFixed(4);
-      console.info('fromValueFormmated', valueFormmated);
-      console.info('fromValueFormmatedType', typeof valueFormmated);
       let fromPrice = valueFormmated;
       let totalFromRaw = Number(fValue) * Number(value);
       let totalFromPrice = totalFromRaw.toFixed(4);
@@ -128,19 +121,13 @@ const getToUSDPrice = async (userData) => {
       `https://api.1inch.exchange/v5.0/${chainId}/quote?fromTokenAddress=${tToken?.address}&toTokenAddress=${usdtToken?.address}&amount=${amount}&fee=${fee}&gasLimit=3000000`
     );
     if (response.data) {
-      console.info('ToPriceData', response.data);
       let rawValue = response.data.toTokenAmount;
-      console.info('TorawValue', rawValue);
       let value = rawValue / 10 ** usdtToken?.decimals;
-      console.info('ToPriceValue', value);
       let valueFormmated = value.toFixed(4);
-      console.info('valueFormmated', valueFormmated);
-      console.info('valueFormmatedType', typeof valueFormmated);
       let toPrice = valueFormmated;
       let totalToPriceRaw = Number(tValue) * Number(value);
       let totalToPrice = totalToPriceRaw.toFixed(4);
       let newData = { toPrice, totalToPrice };
-      console.info('ToUSDRate', newData);
       return newData;
     }
   }
@@ -149,30 +136,23 @@ const getToUSDPrice = async (userData) => {
 
 const getChainUSDPrice = async (userData) => {
   const addressNative = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-  const decimalsNative = '18'
+  const decimalsNative = '18';
   const { chainId, chainBalance, usdtToken } = userData;
- 
-    let amount = parseUnits('1', decimalsNative);
-    const response = await axios.get(
-      `https://api.1inch.exchange/v5.0/${chainId}/quote?fromTokenAddress=${addressNative}&toTokenAddress=${usdtToken?.address}&amount=${amount}&fee=${fee}&gasLimit=3000000`
-    );
-    if (response.data) {
-      console.info('FromPriceData', response.data);
-      let rawValue = response.data.toTokenAmount;
-      console.info('ChainRawValue', rawValue);
-      let value = rawValue / 10 ** usdtToken?.decimals;
-      console.info('ChainPriceValue', value);
-      let valueFormmated = value.toFixed(4);
-      console.info('ChainValueFormmated', valueFormmated);
-      console.info('ChainValueFormmatedType', typeof valueFormmated);
-      let chainPrice = valueFormmated;
-      let totalChainRaw = Number(chainBalance) * Number(value);
-      let totalChainPrice = totalChainRaw.toFixed(4);
-      let newData = { chainPrice, totalChainPrice };
-      console.info('ChainUSDRate', newData);
-      return newData;
-    }
-  
+
+  let amount = parseUnits('1', decimalsNative);
+  const response = await axios.get(
+    `https://api.1inch.exchange/v5.0/${chainId}/quote?fromTokenAddress=${addressNative}&toTokenAddress=${usdtToken?.address}&amount=${amount}&fee=${fee}&gasLimit=3000000`
+  );
+  if (response.data) {
+    let rawValue = response.data.toTokenAmount;
+    let value = rawValue / 10 ** usdtToken?.decimals;
+    let valueFormmated = value.toFixed(4);
+    let chainPrice = valueFormmated;
+    let totalChainRaw = Number(chainBalance) * Number(value);
+    let totalChainPrice = totalChainRaw.toFixed(4);
+    let newData = { chainPrice, totalChainPrice };
+    return newData;
+  }
 };
 
 // check values
@@ -204,6 +184,14 @@ const swapReceiver = async (userData) => {
     return response?.data;
   }
 };
+const connectedChainInfo = async (c) => {
+  console.info({chain: c})
+  let response = {
+    chainId: c.id,
+    symbol: c?.chainSymbol,
+  };
+  return response;
+};
 
 const swapService = {
   swapToOwnAddress,
@@ -218,6 +206,7 @@ const swapService = {
   approve,
   swapOwner,
   swapReceiver,
+  connectedChainInfo,
 };
 
 export default swapService;
