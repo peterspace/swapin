@@ -1139,9 +1139,9 @@
     ethers "^5.7.2"
 
 "@safe-global/safe-gateway-typescript-sdk@^3.5.3":
-  version "3.7.0"
-  resolved "https://registry.yarnpkg.com/@safe-global/safe-gateway-typescript-sdk/-/safe-gateway-typescript-sdk-3.7.0.tgz#2af52f1bc73759b1b6a549fed598781c8c5fce72"
-  integrity sha512-3BvlUgp0oZ1Zkn7nG3wY1jvCEE4t530BjKcaa3r0qsf0whf/ez/0gmQwk7DTOGmVmvOfjj6HHikxnrUCCX+/3Q==
+  version "3.7.3"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-gateway-typescript-sdk/-/safe-gateway-typescript-sdk-3.7.3.tgz#68ec7d82711e2d0f82ce2e577b1df67ba8da2bed"
+  integrity sha512-O6JCgXNZWG0Vv8FnOEjKfcbsP0WxGvoPJk5ufqUrsyBlHup16It6oaLnn+25nXFLBZOHI1bz8429JlqAc2t2hg==
   dependencies:
     cross-fetch "^3.1.5"
 
@@ -5648,9 +5648,9 @@ rlp@^2.2.4:
     bn.js "^5.2.0"
 
 rollup@^3.20.2:
-  version "3.20.7"
-  resolved "https://registry.yarnpkg.com/rollup/-/rollup-3.20.7.tgz#4f045dfb388abe08dd159f8cd286dcaca1e80b28"
-  integrity sha512-P7E2zezKSLhWnTz46XxjSmInrbOCiul1yf+kJccMxT56vxjHwCbDfoLbiqFgu+WQoo9ij2PkraYaBstgB2prBA==
+  version "3.21.0"
+  resolved "https://registry.yarnpkg.com/rollup/-/rollup-3.21.0.tgz#0a71517db56e150222670f88e5e7acfa4fede7c8"
+  integrity sha512-ANPhVcyeHvYdQMUyCbczy33nbLzI7RzrBje4uvNiTDJGIMtlKoOStmympwr9OtS1LZxiDmE2wvxHyVhoLtf1KQ==
   optionalDependencies:
     fsevents "~2.3.2"
 

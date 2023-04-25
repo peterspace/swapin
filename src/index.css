@@ -71,6 +71,19 @@
   /* background: #130d1a; */
 }
 
+.bg-main-buy {
+  /* position: relative;
+  width: 1680px;
+  height: 986px; */
+
+  /* Surface/1 D */
+
+  /* /* background: #181120; */
+  background: #2B2132; 
+
+  /* background: #130d1a; */
+}
+
 .bg-black-gradient {
   background: linear-gradient(
     144.39deg,
